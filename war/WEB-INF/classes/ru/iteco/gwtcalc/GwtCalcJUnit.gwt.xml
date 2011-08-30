@@ -2,8 +2,9 @@
 <module>
   <!-- Inherit our applications main module.                      -->
   <inherits name='ru.iteco.gwtcalc.GwtCalc'/>
-
+  
   <!-- Specify the path to any remote services.                   -->
   <servlet path="/gwtcalc/greet" class="ru.iteco.gwtcalc.server.GreetingServiceImpl" />
-
+  
+  <source path="server" />
 </module>

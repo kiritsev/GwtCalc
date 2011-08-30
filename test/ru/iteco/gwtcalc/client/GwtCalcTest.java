@@ -1,9 +1,11 @@
 package ru.iteco.gwtcalc.client;
 
 import java.util.ArrayList;
+import java.util.Iterator;
 import java.util.List;
 
 import ru.iteco.gwtcalc.client.GwtCalc.CalcActionButtons;
+import ru.iteco.gwtcalc.server.GreetingServiceImpl;
 
 import com.google.gwt.core.client.GWT;
 import com.google.gwt.junit.client.GWTTestCase;
@@ -15,6 +17,8 @@ import com.google.gwt.user.client.rpc.ServiceDefTarget;
  */
 public class GwtCalcTest extends GWTTestCase {
 
+	GreetingServiceAsync greetingService;
+
 	/**
 	 * Must refer to a valid module that sources this class.
 	 */
@@ -23,142 +27,121 @@ public class GwtCalcTest extends GWTTestCase {
 		return "ru.iteco.gwtcalc.GwtCalcJUnit";
 	}
 
-	/**
-	 * Tests the FieldVerifier.
-	 */
-	public void testFieldVerifier() {
-		// assertFalse(FieldVerifier.isValidName(null));
-		// assertFalse(FieldVerifier.isValidName(""));
-		// assertFalse(FieldVerifier.isValidName("a"));
-		// assertFalse(FieldVerifier.isValidName("ab"));
-		// assertFalse(FieldVerifier.isValidName("abc"));
-		// assertTrue(FieldVerifier.isValidName("abcd"));
-	}
-
-	/**
-	 * This test will send a request to the server using the greetServer method
-	 * in GreetingService and verify the response.
-	 */
-	public void testGreetingService() {
-		// Create the service that we will test.
-		GreetingServiceAsync greetingService = GWT
-				.create(GreetingService.class);
+	@Override
+	protected void gwtSetUp() {
+		this.greetingService = GWT.create(GreetingService.class);
 		ServiceDefTarget target = (ServiceDefTarget) greetingService;
 		target.setServiceEntryPoint(GWT.getModuleBaseURL() + "gwtcalc/greet");
 
-		// Since RPC calls are asynchronous, we will need to wait for a response
-		// after this test method returns. This line tells the test runner to
-		// wait
-		// up to 5 seconds before timing out.
-		delayTestFinish(5000);
+		delayTestFinish(40000);
+	}
 
-		// Send a request to the server.
+	class MyAssert {
+		private boolean condition;
+		private String expectedResult;
 
-		List<Integer> numbers = new ArrayList<Integer>();
-		List<GwtCalc.CalcActionButtons> operations = new ArrayList<GwtCalc.CalcActionButtons>();
+		public MyAssert(boolean condition, String expectedResult) {
+			this.condition = condition;
+			this.expectedResult = expectedResult;
+		}
 
-		/**
-		 * Test 1: "2+2=4"
-		 */
-		numbers.add(2);
-		numbers.add(2);
-		operations.add(CalcActionButtons.Plus);
+	}
 
+	private void sendRequest(final List<MyAssert> asserts,
+			List<Integer> numbers, List<GwtCalc.CalcActionButtons> operations) {
 		greetingService.greetServer(numbers, operations,
 				new AsyncCallback<String>() {
 
 					@Override
 					public void onFailure(Throwable caught) {
-						// The request resulted in an unexpected error.
 						fail("Request failure: " + caught.getMessage());
 					}
 
 					@Override
 					public void onSuccess(String result) {
-						// Verify that the response is correct.
-						assertFalse(result.contentEquals("5"));
-						assertFalse(result.contentEquals("3"));
-						assertTrue(result.contentEquals("4"));
+						Iterator<MyAssert> it = asserts.iterator();
+						MyAssert item;
 
-						// Now that we have received a response, we need to tell
-						// the
-						// test runner
-						// that the test is complete. You must call finishTest()
-						// after
-						// an
-						// asynchronous test finishes successfully, or the test
-						// will
-						// time out.
+						while (it.hasNext()) {
+							item = it.next();
+							if (item.condition == true) {
+								assertTrue(result
+										.contentEquals(item.expectedResult));
+							} else {
+								assertFalse(result
+										.contentEquals(item.expectedResult));
+							}
+						}
+
 						finishTest();
 					}
 				});
+	}
 
+	// public void testCalculatorCalls() {
+	// initialize();
+	// subtestTwoPlusTwoIsFore();
+	// subtestHundredPlusOneMinusOneMultiplyThree();
+	// subtestTwoPlusTwoMultiplyNothingIsError();
+	// }
+
+	public void testTwoPlusTwoIsFore() {
 		/**
-		 * Test 2: 100+1-1*3=300
-		 * 
+		 * 2 + 2 = 4
 		 */
-		numbers.clear();
-		operations.clear();
+		List<Integer> numbers = new ArrayList<Integer>();
+		List<GwtCalc.CalcActionButtons> operations = new ArrayList<GwtCalc.CalcActionButtons>();
+		List<MyAssert> assertions = new ArrayList<MyAssert>();
+
+		numbers.add(2);
+		operations.add(CalcActionButtons.Plus);
+		numbers.add(2);
+
+		assertions.add(new MyAssert(true, "4"));
+		assertions.add(new MyAssert(false, "5"));
+		assertions.add(new MyAssert(false, "6"));
+
+		sendRequest(assertions, numbers, operations);
+	}
+
+	public void testHundredPlusOneMinusOneMultiplyThree() {
+		/**
+		 * 100 + 1 - 1 * 3 = 300
+		 */
+		List<Integer> numbers = new ArrayList<Integer>();
+		List<GwtCalc.CalcActionButtons> operations = new ArrayList<GwtCalc.CalcActionButtons>();
+		List<MyAssert> assertions = new ArrayList<MyAssert>();
+
 		numbers.add(100);
-		numbers.add(1);
-		numbers.add(1);
-		numbers.add(3);
 		operations.add(CalcActionButtons.Plus);
+		numbers.add(1);
 		operations.add(CalcActionButtons.Minus);
+		numbers.add(1);
 		operations.add(CalcActionButtons.Mul);
+		numbers.add(3);
 
-		greetingService.greetServer(numbers, operations,
-				new AsyncCallback<String>() {
-					@Override
-					public void onFailure(Throwable caught) {
-						fail("Request failure: " + caught.getMessage());
-					}
+		assertions.add(new MyAssert(false, "777"));
+		assertions.add(new MyAssert(true, "300"));
 
-					@Override
-					public void onSuccess(String result) {
-						assertFalse(result.contentEquals("777"));
-						assertTrue(result.contentEquals("300"));
-						finishTest();
-					}
-				});
-
+		sendRequest(assertions, numbers, operations);
 	}
 
-	public void testGreetingServiceErrorMsg() {
-		GreetingServiceAsync greetingService = GWT
-				.create(GreetingService.class);
-		ServiceDefTarget target = (ServiceDefTarget) greetingService;
-		target.setServiceEntryPoint(GWT.getModuleBaseURL() + "gwtcalc/greet");
-		delayTestFinish(5000);
-
-		List<Integer> numbers = new ArrayList<Integer>();
-		List<GwtCalc.CalcActionButtons> operations = new ArrayList<GwtCalc.CalcActionButtons>();
-
+	public void testTwoPlusTwoMultiplyNothingIsError() {
 		/**
 		 * Test 1: "2+2* = ERROR"
 		 */
-		numbers.add(2);
+		List<Integer> numbers = new ArrayList<Integer>();
+		List<GwtCalc.CalcActionButtons> operations = new ArrayList<GwtCalc.CalcActionButtons>();
+		List<MyAssert> assertions = new ArrayList<MyAssert>();
+
 		numbers.add(2);
 		operations.add(CalcActionButtons.Plus);
+		numbers.add(2);
 		operations.add(CalcActionButtons.Mul);
 
-		greetingService.greetServer(numbers, operations,
-				new AsyncCallback<String>() {
+		assertions.add(new MyAssert(true,
+				GreetingServiceImpl.ERROR_INPUT_DATA_MSG));
 
-					@Override
-					public void onFailure(Throwable caught) {
-						// The request resulted in an unexpected error.
-						fail("Request failure: " + caught.getMessage());
-					}
-
-					@Override
-					public void onSuccess(String result) {
-						assertTrue(result.contentEquals("Error input data"));
-						// assertTrue(result
-						// .equals(GreetingServiceImpl.ERROR_INPUT_DATA_MSG));
-						finishTest();
-					}
-				});
-
+		sendRequest(assertions, numbers, operations);
 	}
 }
